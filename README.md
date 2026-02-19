@@ -1,36 +1,84 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Market Sentiment Dashboard
 
-## Getting Started
+An AI-powered market sentiment analysis dashboard for stock tickers, built with Next.js 14, React 18, TypeScript, and Tailwind CSS.
 
-First, run the development server:
+## Local Preview
+
+### Prerequisites
+- Node.js 18+ installed ([download](https://nodejs.org))
+
+### Steps
 
 ```bash
+# 1. Install dependencies
+npm install
+
+# 2. Start the development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser. The page hot-reloads as you edit files.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Other local commands
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run build   # Build for production
+npm run start   # Run the production build locally (run build first)
+npm run lint    # Lint the codebase
+```
 
-## Learn More
+## Deploy to Vercel
 
-To learn more about Next.js, take a look at the following resources:
+### Option 1: Vercel CLI (recommended for quick deploys)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+# 1. Install the Vercel CLI globally
+npm install -g vercel
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+# 2. From the project root, run:
+vercel
 
-## Deploy on Vercel
+# Follow the prompts to log in and configure the project.
+# Vercel auto-detects Next.js — no extra config needed.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+# For production deployment:
+vercel --prod
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Option 2: Vercel Dashboard (GitHub integration)
+
+1. Push this repo to GitHub (if not already there).
+2. Go to [vercel.com/new](https://vercel.com/new) and sign in.
+3. Click **Import** and select this repository.
+4. Vercel will auto-detect Next.js settings — leave everything as default.
+5. Click **Deploy**.
+
+Your app will be live at a `*.vercel.app` URL within about a minute.
+
+### Environment Variables
+
+This project currently uses only placeholder data and requires no environment variables. If you add API integrations later, add any required variables in the Vercel dashboard under **Settings → Environment Variables**.
+
+## Project Structure
+
+```
+app/
+  layout.tsx          # Root layout and metadata
+  page.tsx            # Home page
+  globals.css         # Global Tailwind styles
+components/
+  Navbar.tsx          # Top navigation bar
+  WatchlistSidebar.tsx # Ticker watchlist panel
+  SentimentCard.tsx   # Per-ticker sentiment display
+  SentimentGauge.tsx  # Visual gauge component
+  SentimentBadge.tsx  # Bullish/Bearish/Neutral badge
+lib/
+  placeholderData.ts  # Mock sentiment data (AAPL, TSLA, NVDA, MSFT)
+```
+
+## Tech Stack
+
+- **Framework:** Next.js 14 (App Router)
+- **Language:** TypeScript
+- **Styling:** Tailwind CSS with custom dark-theme palette
+- **Runtime:** Node.js 18+
