@@ -22,8 +22,27 @@ export interface SentimentData {
   lastUpdated: string;
 }
 
+export interface NewsArticle {
+  headline: string;
+  summary: string;
+  url: string;
+  created_at: string;
+  author: string;
+  source: string;
+}
+
+export interface StockTwitsMessage {
+  body: string;
+  sentiment: "Bullish" | "Bearish" | null;
+  username: string;
+  created_at: string;
+  likes: number;
+}
+
 interface SentimentCardProps {
   data: SentimentData;
+  news?: NewsArticle[];
+  stocktwits?: StockTwitsMessage[];
 }
 
 function SignalRow({
@@ -77,7 +96,112 @@ function SourcePill({
   );
 }
 
-export default function SentimentCard({ data }: SentimentCardProps) {
+function NewsSection({ articles }: { articles: NewsArticle[] }) {
+  if (articles.length === 0) return null;
+
+  return (
+    <div>
+      <div className="flex items-center gap-2 mb-3">
+        <span className="w-1 h-4 rounded-full bg-sky-500" />
+        <h3 className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+          News Headlines
+        </h3>
+      </div>
+      <div className="rounded-xl bg-[#0d1428] border border-[#1e2d52] divide-y divide-[#1e2d52]/60">
+        {articles.slice(0, 8).map((article, i) => (
+          <div key={i} className="px-4 py-3">
+            <a
+              href={article.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-slate-200 font-medium leading-snug hover:text-white transition-colors line-clamp-2"
+            >
+              {article.headline}
+            </a>
+            <div className="flex items-center gap-2 mt-1.5 text-[11px] text-slate-600">
+              <span>{article.source}</span>
+              {article.author && (
+                <>
+                  <span>·</span>
+                  <span>{article.author}</span>
+                </>
+              )}
+              <span>·</span>
+              <span>
+                {new Date(article.created_at).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                })}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function StockTwitsSection({ messages }: { messages: StockTwitsMessage[] }) {
+  if (messages.length === 0) return null;
+
+  return (
+    <div>
+      <div className="flex items-center gap-2 mb-3">
+        <span className="w-1 h-4 rounded-full bg-orange-500" />
+        <h3 className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+          StockTwits Feed
+        </h3>
+        <span className="ml-auto text-[10px] text-slate-600">
+          {messages.length} messages
+        </span>
+      </div>
+      <div className="rounded-xl bg-[#0d1428] border border-[#1e2d52] divide-y divide-[#1e2d52]/60 max-h-[420px] overflow-y-auto">
+        {messages.map((msg, i) => (
+          <div key={i} className="px-4 py-3">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs font-semibold text-slate-400">
+                @{msg.username}
+              </span>
+              <div className="flex items-center gap-2">
+                {msg.sentiment !== null && (
+                  <span
+                    className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
+                      msg.sentiment === "Bullish"
+                        ? "text-green-400 bg-green-500/10 border-green-500/30"
+                        : "text-red-400 bg-red-500/10 border-red-500/30"
+                    }`}
+                  >
+                    {msg.sentiment === "Bullish" ? "▲ " : "▼ "}
+                    {msg.sentiment}
+                  </span>
+                )}
+              </div>
+            </div>
+            <p className="text-sm text-slate-300 leading-relaxed">{msg.body}</p>
+            <div className="flex items-center gap-3 mt-1.5 text-[11px] text-slate-600">
+              <span>
+                {new Date(msg.created_at).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </span>
+              {msg.likes > 0 && (
+                <>
+                  <span>·</span>
+                  <span>♥ {msg.likes}</span>
+                </>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default function SentimentCard({ data, news = [], stocktwits = [] }: SentimentCardProps) {
   const accentColor =
     data.sentiment === "Bullish"
       ? "from-green-500/10 to-transparent"
@@ -184,6 +308,14 @@ export default function SentimentCard({ data }: SentimentCardProps) {
             </div>
           </div>
         </div>
+
+        {/* Live data sections — rendered below the gauge/details row */}
+        {(news.length > 0 || stocktwits.length > 0) && (
+          <div className="mt-8 flex flex-col gap-6 border-t border-[#1e2d52]/60 pt-6">
+            <NewsSection articles={news} />
+            <StockTwitsSection messages={stocktwits} />
+          </div>
+        )}
       </div>
     </div>
   );

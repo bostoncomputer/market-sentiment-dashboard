@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Navbar from "@/components/Navbar";
 import WatchlistSidebar from "@/components/WatchlistSidebar";
-import SentimentCard from "@/components/SentimentCard";
+import SentimentCard, { NewsArticle, StockTwitsMessage } from "@/components/SentimentCard";
 import { getSentimentData } from "@/lib/placeholderData";
 import { SentimentData } from "@/components/SentimentCard";
 
@@ -12,17 +12,31 @@ export default function Home() {
   const [sentimentData, setSentimentData] = useState<SentimentData>(
     getSentimentData("AAPL")
   );
+  const [news, setNews] = useState<NewsArticle[]>([]);
+  const [stocktwits, setStocktwits] = useState<StockTwitsMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  function handleSearch(ticker: string) {
+  async function handleSearch(ticker: string) {
     if (ticker === activeTicker) return;
     setIsLoading(true);
-    // Simulate brief loading for UX
-    setTimeout(() => {
-      setActiveTicker(ticker);
-      setSentimentData(getSentimentData(ticker));
+    setActiveTicker(ticker);
+    setSentimentData(getSentimentData(ticker));
+
+    try {
+      const res = await fetch(
+        `/api/sentiment-data?ticker=${encodeURIComponent(ticker)}`
+      );
+      if (res.ok) {
+        const data = await res.json();
+        setNews(data.news ?? []);
+        setStocktwits(data.stocktwits ?? []);
+      }
+    } catch {
+      setNews([]);
+      setStocktwits([]);
+    } finally {
       setIsLoading(false);
-    }, 500);
+    }
   }
 
   return (
@@ -59,7 +73,7 @@ export default function Home() {
                   d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                 />
               </svg>
-              Placeholder data — connect your API for live signals
+              Live data via Alpaca &amp; StockTwits
             </div>
           </div>
 
@@ -69,7 +83,11 @@ export default function Home() {
               isLoading ? "opacity-40 scale-[0.99]" : "opacity-100 scale-100"
             }`}
           >
-            <SentimentCard data={sentimentData} />
+            <SentimentCard
+              data={sentimentData}
+              news={news}
+              stocktwits={stocktwits}
+            />
           </div>
 
           {/* Bottom stats row */}
@@ -77,7 +95,7 @@ export default function Home() {
             <StatCard
               label="Data Sources"
               value="3 Active"
-              sub="News · Social · Filings"
+              sub="News · StockTwits · Filings"
               accent="blue"
             />
             <StatCard
