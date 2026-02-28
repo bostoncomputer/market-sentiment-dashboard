@@ -1,5 +1,4 @@
 "use client";
-
 import { useState } from "react";
 import Navbar from "@/components/Navbar";
 import WatchlistSidebar from "@/components/WatchlistSidebar";
@@ -15,34 +14,98 @@ export default function Home() {
   const [news, setNews] = useState<NewsArticle[]>([]);
   const [stocktwits, setStocktwits] = useState<StockTwitsMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   async function handleSearch(ticker: string) {
     if (ticker === activeTicker) return;
     setIsLoading(true);
     setActiveTicker(ticker);
+    // Show placeholder immediately while we fetch
     setSentimentData(getSentimentData(ticker));
+    setNews([]);
+    setStocktwits([]);
 
+    let fetchedNews: NewsArticle[] = [];
+    let fetchedStocktwits: StockTwitsMessage[] = [];
+
+    // Step 1: Fetch news + StockTwits
     try {
       const res = await fetch(
         `/api/sentiment-data?ticker=${encodeURIComponent(ticker)}`
       );
       if (res.ok) {
         const data = await res.json();
-        setNews(data.news ?? []);
-        setStocktwits(data.stocktwits ?? []);
+        fetchedNews = data.news ?? [];
+        fetchedStocktwits = data.stocktwits ?? [];
+        setNews(fetchedNews);
+        setStocktwits(fetchedStocktwits);
       }
     } catch {
-      setNews([]);
-      setStocktwits([]);
+      // proceed with empty arrays; Claude will note data is sparse
     } finally {
       setIsLoading(false);
+    }
+
+    // Step 2: Send to Claude for analysis
+    setIsAnalyzing(true);
+    try {
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ticker, news: fetchedNews, stocktwits: fetchedStocktwits }),
+      });
+
+      if (!res.ok) return;
+
+      const analyzed = await res.json();
+
+      // Derive social sentiment from raw StockTwits vote counts
+      const bullishCount = fetchedStocktwits.filter(
+        (m) => m.sentiment === "Bullish"
+      ).length;
+      const bearishCount = fetchedStocktwits.filter(
+        (m) => m.sentiment === "Bearish"
+      ).length;
+      const socialSentiment: SentimentData["sentiment"] =
+        bullishCount > bearishCount
+          ? "Bullish"
+          : bearishCount > bullishCount
+          ? "Bearish"
+          : "Neutral";
+
+      setSentimentData((prev) => ({
+        ...prev,
+        score: analyzed.score,
+        sentiment: analyzed.rating as SentimentData["sentiment"],
+        summary: analyzed.narrative,
+        signals: analyzed.signals,
+        lastUpdated: new Date().toLocaleTimeString("en-US", {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        sources: [
+          {
+            label: "News",
+            count: fetchedNews.length,
+            sentiment: analyzed.rating as SentimentData["sentiment"],
+          },
+          {
+            label: "Social",
+            count: fetchedStocktwits.length,
+            sentiment: socialSentiment,
+          },
+        ],
+      }));
+    } catch {
+      // Claude failed — placeholder data remains visible
+    } finally {
+      setIsAnalyzing(false);
     }
   }
 
   return (
     <div className="flex flex-col min-h-screen bg-[#0a0f1e]">
       <Navbar onSearch={handleSearch} />
-
       <div className="flex flex-1 gap-6 px-6 py-6 max-w-screen-2xl mx-auto w-full">
         {/* Watchlist Sidebar */}
         <WatchlistSidebar activeTicker={activeTicker} onSelect={handleSearch} />
@@ -79,7 +142,7 @@ export default function Home() {
 
           {/* Sentiment Card */}
           <div
-            className={`transition-all duration-300 ${
+            className={`relative transition-all duration-300 ${
               isLoading ? "opacity-40 scale-[0.99]" : "opacity-100 scale-100"
             }`}
           >
@@ -88,26 +151,38 @@ export default function Home() {
               news={news}
               stocktwits={stocktwits}
             />
+
+            {/* Claude analyzing overlay */}
+            {isAnalyzing && (
+              <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-[#0a0f1e]/70 backdrop-blur-sm">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="w-8 h-8 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
+                  <span className="text-sm font-medium text-slate-300">
+                    Claude is analyzing {activeTicker}&hellip;
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Bottom stats row */}
           <div className="grid grid-cols-3 gap-4">
             <StatCard
               label="Data Sources"
-              value="3 Active"
-              sub="News · StockTwits · Filings"
+              value="2 Active"
+              sub="News · StockTwits"
               accent="blue"
             />
             <StatCard
               label="Analysis Model"
-              value="NLP v2.4"
-              sub="Fine-tuned on financial corpus"
+              value="Claude Sonnet"
+              sub="claude-sonnet-4-20250514"
               accent="indigo"
             />
             <StatCard
               label="Refresh Cadence"
-              value="Every 15 min"
-              sub="Real-time with live tier"
+              value="On Demand"
+              sub="Search any ticker to analyze"
               accent="violet"
             />
           </div>
@@ -133,13 +208,11 @@ function StatCard({
     indigo: "border-indigo-500/20 shadow-indigo-900/10",
     violet: "border-violet-500/20 shadow-violet-900/10",
   }[accent];
-
   const dot = {
     blue: "bg-blue-500",
     indigo: "bg-indigo-500",
     violet: "bg-violet-500",
   }[accent];
-
   return (
     <div
       className={`bg-[#111c35] border rounded-xl px-4 py-3.5 shadow-lg ${ring}`}
