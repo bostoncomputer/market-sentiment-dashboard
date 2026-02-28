@@ -1,7 +1,6 @@
 "use client";
 import { useState } from "react";
 import Navbar from "@/components/Navbar";
-import WatchlistSidebar from "@/components/WatchlistSidebar";
 import SentimentCard, { NewsArticle, StockTwitsMessage } from "@/components/SentimentCard";
 import { getSentimentData } from "@/lib/placeholderData";
 import { SentimentData } from "@/components/SentimentCard";
@@ -106,88 +105,82 @@ export default function Home() {
   return (
     <div className="flex flex-col min-h-screen bg-[#0a0f1e]">
       <Navbar onSearch={handleSearch} />
-      <div className="flex flex-1 gap-6 px-6 py-6 max-w-screen-2xl mx-auto w-full">
-        {/* Watchlist Sidebar */}
-        <WatchlistSidebar activeTicker={activeTicker} onSelect={handleSearch} />
-
-        {/* Main Content */}
-        <main className="flex-1 flex flex-col gap-6 min-w-0">
-          {/* Page title row */}
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-bold text-white">
-                Market Sentiment Analysis
-              </h2>
-              <p className="text-sm text-slate-500 mt-0.5">
-                AI-powered sentiment scoring from news, social, and filings data
-              </p>
-            </div>
-            <div className="flex items-center gap-2 text-xs text-slate-500 border border-[#1e2d52] rounded-lg px-3 py-2">
-              <svg
-                className="w-3.5 h-3.5 text-blue-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              Live data via Alpaca &amp; StockTwits
-            </div>
+      <main className="flex-1 flex flex-col gap-6 px-4 sm:px-6 py-6 max-w-screen-xl mx-auto w-full">
+        {/* Page title row */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-bold text-white">
+              Market Sentiment Analysis
+            </h2>
+            <p className="text-sm text-slate-500 mt-0.5">
+              AI-powered sentiment scoring from news, social, and filings data
+            </p>
           </div>
+          <div className="flex items-center gap-2 text-xs text-slate-500 border border-[#1e2d52] rounded-lg px-3 py-2 self-start sm:self-auto">
+            <svg
+              className="w-3.5 h-3.5 text-blue-400 shrink-0"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            Live data via Alpaca &amp; StockTwits
+          </div>
+        </div>
 
-          {/* Sentiment Card */}
-          <div
-            className={`relative transition-all duration-300 ${
-              isLoading ? "opacity-40 scale-[0.99]" : "opacity-100 scale-100"
-            }`}
-          >
-            <SentimentCard
-              data={sentimentData}
-              news={news}
-              stocktwits={stocktwits}
-            />
+        {/* Sentiment Card */}
+        <div
+          className={`relative transition-all duration-300 ${
+            isLoading ? "opacity-40 scale-[0.99]" : "opacity-100 scale-100"
+          }`}
+        >
+          <SentimentCard
+            data={sentimentData}
+            news={news}
+            stocktwits={stocktwits}
+          />
 
-            {/* Claude analyzing overlay */}
-            {isAnalyzing && (
-              <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-[#0a0f1e]/70 backdrop-blur-sm">
-                <div className="flex flex-col items-center gap-3">
-                  <div className="w-8 h-8 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
-                  <span className="text-sm font-medium text-slate-300">
-                    Claude is analyzing {activeTicker}&hellip;
-                  </span>
-                </div>
+          {/* Claude analyzing overlay */}
+          {isAnalyzing && (
+            <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-[#0a0f1e]/70 backdrop-blur-sm">
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-8 h-8 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
+                <span className="text-sm font-medium text-slate-300">
+                  Claude is analyzing {activeTicker}&hellip;
+                </span>
               </div>
-            )}
-          </div>
+            </div>
+          )}
+        </div>
 
-          {/* Bottom stats row */}
-          <div className="grid grid-cols-3 gap-4">
-            <StatCard
-              label="Data Sources"
-              value="2 Active"
-              sub="News · StockTwits"
-              accent="blue"
-            />
-            <StatCard
-              label="Analysis Model"
-              value="Claude Sonnet"
-              sub="claude-sonnet-4-20250514"
-              accent="indigo"
-            />
-            <StatCard
-              label="Refresh Cadence"
-              value="On Demand"
-              sub="Search any ticker to analyze"
-              accent="violet"
-            />
-          </div>
-        </main>
-      </div>
+        {/* Bottom stats row */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <StatCard
+            label="Data Sources"
+            value="2 Active"
+            sub="News · StockTwits"
+            accent="blue"
+          />
+          <StatCard
+            label="Analysis Model"
+            value="Claude Sonnet"
+            sub="claude-sonnet-4-20250514"
+            accent="indigo"
+          />
+          <StatCard
+            label="Refresh Cadence"
+            value="On Demand"
+            sub="Search any ticker to analyze"
+            accent="violet"
+          />
+        </div>
+      </main>
     </div>
   );
 }
