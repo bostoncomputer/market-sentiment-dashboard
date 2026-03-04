@@ -43,6 +43,8 @@ interface SentimentCardProps {
   data: SentimentData;
   news?: NewsArticle[];
   stocktwits?: StockTwitsMessage[];
+  price?: number | null;
+  priceChange?: number | null;
 }
 
 function SignalRow({
@@ -201,7 +203,7 @@ function StockTwitsSection({ messages }: { messages: StockTwitsMessage[] }) {
   );
 }
 
-export default function SentimentCard({ data, news = [], stocktwits = [] }: SentimentCardProps) {
+export default function SentimentCard({ data, news = [], stocktwits = [], price, priceChange }: SentimentCardProps) {
   const accentColor =
     data.sentiment === "Bullish"
       ? "from-green-500/10 to-transparent"
@@ -229,10 +231,27 @@ export default function SentimentCard({ data, news = [], stocktwits = [] }: Sent
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-8">
           <div>
-            <div className="flex items-center gap-3 mb-1.5">
+            <div className="flex items-center gap-3 mb-1.5 flex-wrap">
               <h1 className="text-4xl font-black tracking-tight text-white">
                 {data.ticker}
               </h1>
+              {price != null && (
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-2xl font-bold text-slate-200">
+                    ${price.toFixed(2)}
+                  </span>
+                  {priceChange != null && (
+                    <span
+                      className={`text-sm font-semibold ${
+                        priceChange >= 0 ? "text-green-400" : "text-red-400"
+                      }`}
+                    >
+                      {priceChange >= 0 ? "▲" : "▼"}{" "}
+                      {Math.abs(priceChange).toFixed(2)}
+                    </span>
+                  )}
+                </div>
+              )}
               <SentimentBadge sentiment={data.sentiment} size="lg" />
             </div>
             <p className="text-slate-400 text-sm">{data.companyName}</p>

@@ -6,12 +6,12 @@ import { getSentimentData } from "@/lib/placeholderData";
 import { SentimentData } from "@/components/SentimentCard";
 
 export default function Home() {
-  const [activeTicker, setActiveTicker] = useState("AAPL");
-  const [sentimentData, setSentimentData] = useState<SentimentData>(
-    getSentimentData("AAPL")
-  );
+  const [activeTicker, setActiveTicker] = useState("");
+  const [sentimentData, setSentimentData] = useState<SentimentData | null>(null);
   const [news, setNews] = useState<NewsArticle[]>([]);
   const [stocktwits, setStocktwits] = useState<StockTwitsMessage[]>([]);
+  const [price, setPrice] = useState<number | null>(null);
+  const [priceChange, setPriceChange] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
@@ -19,28 +19,37 @@ export default function Home() {
     if (ticker === activeTicker) return;
     setIsLoading(true);
     setActiveTicker(ticker);
-    // Show placeholder immediately while we fetch
-    setSentimentData(getSentimentData(ticker));
+    setSentimentData(null);
     setNews([]);
     setStocktwits([]);
+    setPrice(null);
+    setPriceChange(null);
 
     let fetchedNews: NewsArticle[] = [];
     let fetchedStocktwits: StockTwitsMessage[] = [];
 
-    // Step 1: Fetch news + StockTwits
+    // Step 1: Fetch news, StockTwits, and price in parallel
     try {
-      const res = await fetch(
-        `/api/sentiment-data?ticker=${encodeURIComponent(ticker)}`
-      );
-      if (res.ok) {
-        const data = await res.json();
+      const [sentRes, priceRes] = await Promise.all([
+        fetch(`/api/sentiment-data?ticker=${encodeURIComponent(ticker)}`),
+        fetch(`/api/price?ticker=${encodeURIComponent(ticker)}`),
+      ]);
+
+      if (sentRes.ok) {
+        const data = await sentRes.json();
         fetchedNews = data.news ?? [];
         fetchedStocktwits = data.stocktwits ?? [];
         setNews(fetchedNews);
         setStocktwits(fetchedStocktwits);
       }
+
+      if (priceRes.ok) {
+        const priceData = await priceRes.json();
+        setPrice(priceData.price ?? null);
+        setPriceChange(priceData.change ?? null);
+      }
     } catch {
-      // proceed with empty arrays; Claude will note data is sparse
+      // proceed with empty data; Claude will note data is sparse
     } finally {
       setIsLoading(false);
     }
@@ -58,7 +67,6 @@ export default function Home() {
 
       const analyzed = await res.json();
 
-      // Derive social sentiment from raw StockTwits vote counts
       const bullishCount = fetchedStocktwits.filter(
         (m) => m.sentiment === "Bullish"
       ).length;
@@ -72,8 +80,10 @@ export default function Home() {
           ? "Bearish"
           : "Neutral";
 
-      setSentimentData((prev) => ({
-        ...prev,
+      // Use placeholder as a base to get companyName, then override with real analysis
+      const base = getSentimentData(ticker);
+      setSentimentData({
+        ...base,
         score: analyzed.score,
         sentiment: analyzed.rating as SentimentData["sentiment"],
         summary: analyzed.narrative,
@@ -94,13 +104,15 @@ export default function Home() {
             sentiment: socialSentiment,
           },
         ],
-      }));
+      });
     } catch {
-      // Claude failed — placeholder data remains visible
+      // Claude failed — stay on welcome panel
     } finally {
       setIsAnalyzing(false);
     }
   }
+
+  const isBusy = isLoading || isAnalyzing;
 
   return (
     <div className="flex flex-col min-h-screen bg-[#0a0f1e]">
@@ -134,30 +146,20 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Sentiment Card */}
-        <div
-          className={`relative transition-all duration-300 ${
-            isLoading ? "opacity-40 scale-[0.99]" : "opacity-100 scale-100"
-          }`}
-        >
-          <SentimentCard
-            data={sentimentData}
-            news={news}
-            stocktwits={stocktwits}
-          />
-
-          {/* Claude analyzing overlay */}
-          {isAnalyzing && (
-            <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-[#0a0f1e]/70 backdrop-blur-sm">
-              <div className="flex flex-col items-center gap-3">
-                <div className="w-8 h-8 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
-                <span className="text-sm font-medium text-slate-300">
-                  Claude is analyzing {activeTicker}&hellip;
-                </span>
-              </div>
-            </div>
-          )}
-        </div>
+        {/* Main content: welcome panel or sentiment card */}
+        {sentimentData === null ? (
+          <WelcomePanel isBusy={isBusy} ticker={activeTicker} />
+        ) : (
+          <div className="relative">
+            <SentimentCard
+              data={sentimentData}
+              news={news}
+              stocktwits={stocktwits}
+              price={price}
+              priceChange={priceChange}
+            />
+          </div>
+        )}
 
         {/* Bottom stats row */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -183,6 +185,55 @@ export default function Home() {
       </main>
     </div>
   );
+}
+
+function WelcomePanel({ isBusy, ticker }: { isBusy: boolean; ticker: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center rounded-2xl border border-[#1e2d52] bg-[#111c35] px-6 py-16 text-center min-h-[320px]">
+      {isBusy ? (
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
+          <p className="text-slate-300 font-medium">
+            {isAnalyzingLabel(ticker)}
+          </p>
+        </div>
+      ) : (
+        <div className="flex flex-col items-center gap-3 max-w-md">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500/20 to-indigo-600/20 border border-blue-500/20 flex items-center justify-center mb-2">
+            <svg
+              className="w-7 h-7 text-blue-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"
+              />
+            </svg>
+          </div>
+          <h3 className="text-xl font-bold text-white">
+            Enter a stock symbol above to get started
+          </h3>
+          <p className="text-sm text-slate-500">
+            Analysis powered by Alpaca News, StockTwits, and Claude AI
+          </p>
+          <p className="text-xs text-slate-600 mt-2 leading-relaxed max-w-sm">
+            SentimentIQ is not a financial advisor. This tool is for
+            informational purposes only and should not be used as the basis for
+            investment decisions.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function isAnalyzingLabel(ticker: string) {
+  if (!ticker) return "Loading…";
+  return `Analyzing ${ticker}…`;
 }
 
 function StatCard({
