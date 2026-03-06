@@ -232,9 +232,30 @@ export default function SentimentCard({ data, news = [], stocktwits = [], price,
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-8">
           <div>
             <div className="flex items-center gap-3 mb-1.5 flex-wrap">
-              <h1 className="text-4xl font-black tracking-tight text-white">
-                {data.ticker}
-              </h1>
+              <a
+                href={`https://finviz.com/quote.ashx?t=${data.ticker}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group inline-flex items-center gap-1.5"
+              >
+                <h1 className="text-4xl font-black tracking-tight text-white group-hover:underline underline-offset-4 decoration-white/50">
+                  {data.ticker}
+                </h1>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 12 12"
+                  className="w-4 h-4 text-white/40 group-hover:text-white/80 transition-colors mb-1 shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M5 2H2a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V7" />
+                  <path d="M8 1h3v3" />
+                  <path d="M11 1 6 6" />
+                </svg>
+              </a>
               {price != null && (
                 <div className="flex items-baseline gap-1.5">
                   <span className="text-2xl font-bold text-slate-200">
