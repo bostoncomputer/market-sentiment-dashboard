@@ -3,7 +3,7 @@
 import { useState, FormEvent } from "react";
 
 interface NavbarProps {
-  onSearch: (ticker: string) => void;
+  onSearch?: (ticker: string) => void;
 }
 
 const todayLabel = new Date().toLocaleDateString("en-US", {
@@ -18,7 +18,7 @@ export default function Navbar({ onSearch }: NavbarProps) {
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     const trimmed = input.trim().toUpperCase();
-    if (trimmed) {
+    if (trimmed && onSearch) {
       onSearch(trimmed);
       setInput("");
     }
@@ -29,7 +29,9 @@ export default function Navbar({ onSearch }: NavbarProps) {
       {/* ── Desktop: single row ── */}
       <div className="hidden sm:flex items-center justify-between px-6 py-4">
         <Brand />
-        <SearchForm input={input} setInput={setInput} onSubmit={handleSubmit} wide />
+        {onSearch && (
+          <SearchForm input={input} setInput={setInput} onSubmit={handleSubmit} wide />
+        )}
         <LiveIndicator />
       </div>
 
@@ -38,7 +40,9 @@ export default function Navbar({ onSearch }: NavbarProps) {
         {/* Row 1: brand */}
         <Brand />
         {/* Row 2: search + button */}
-        <SearchForm input={input} setInput={setInput} onSubmit={handleSubmit} wide={false} />
+        {onSearch && (
+          <SearchForm input={input} setInput={setInput} onSubmit={handleSubmit} wide={false} />
+        )}
         {/* Row 3: live indicator */}
         <LiveIndicator />
       </div>
@@ -68,12 +72,17 @@ function Brand() {
         </svg>
       </div>
       <div>
-        <span className="text-lg font-bold tracking-tight text-white">
-          SentimentIQ
-        </span>
-        <span className="ml-2 text-xs font-medium px-1.5 py-0.5 rounded bg-blue-600/20 text-blue-400 border border-blue-600/30 uppercase tracking-wider">
-          Beta
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-lg font-bold tracking-tight text-white">
+            SentimentIQ
+          </span>
+          <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-blue-600/20 text-blue-400 border border-blue-600/30 uppercase tracking-wider">
+            Beta
+          </span>
+        </div>
+        <p className="text-[11px] text-slate-500 leading-none mt-0.5">
+          Stock Market Sentiment Analysis
+        </p>
       </div>
     </div>
   );
