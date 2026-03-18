@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
 
@@ -15,6 +16,7 @@ const todayLabel = new Date().toLocaleDateString("en-US", {
 });
 
 export default function Navbar({ onSearch }: NavbarProps) {
+  const router = useRouter();
   const [input, setInput] = useState("");
   const [user, setUser] = useState<User | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -45,7 +47,8 @@ export default function Navbar({ onSearch }: NavbarProps) {
   async function handleSignOut() {
     const supabase = createClient();
     await supabase.auth.signOut();
-    window.location.href = "/";
+    router.push("/");
+    router.refresh();
   }
 
   function handleSubmit(e: FormEvent) {
