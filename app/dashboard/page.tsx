@@ -1,11 +1,23 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import Navbar from "@/components/Navbar";
 import SentimentCard, { NewsArticle, StockTwitsMessage } from "@/components/SentimentCard";
 import { getSentimentData } from "@/lib/placeholderData";
 import { SentimentData } from "@/components/SentimentCard";
 
 export default function Home() {
+  const router = useRouter();
+
+  // Client-side auth guard (middleware is the primary guard)
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) router.replace("/");
+    });
+  }, [router]);
+
   const [activeTicker, setActiveTicker] = useState("");
   const [sentimentData, setSentimentData] = useState<SentimentData | null>(null);
   const [news, setNews] = useState<NewsArticle[]>([]);

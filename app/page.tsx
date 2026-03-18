@@ -1,6 +1,27 @@
+"use client";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
+import type { User } from "@supabase/supabase-js";
 
 export default function LandingPage() {
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => setUser(data.user));
+  }, []);
+
+  async function handleSignIn() {
+    const supabase = createClient();
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+  }
+
   return (
     <div className="flex flex-col min-h-screen bg-[#0a0f1e] text-slate-200">
       {/* ── Nav ── */}
@@ -24,12 +45,21 @@ export default function LandingPage() {
           </div>
 
           {/* Nav CTA */}
-          <Link
-            href="/dashboard"
-            className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition-colors shadow-lg shadow-blue-900/30"
-          >
-            Open Dashboard
-          </Link>
+          {user ? (
+            <Link
+              href="/dashboard"
+              className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition-colors shadow-lg shadow-blue-900/30"
+            >
+              Open Dashboard
+            </Link>
+          ) : (
+            <button
+              onClick={handleSignIn}
+              className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition-colors shadow-lg shadow-blue-900/30"
+            >
+              Sign in with Google
+            </button>
+          )}
         </div>
       </header>
 
@@ -66,15 +96,27 @@ export default function LandingPage() {
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link
-                href="/dashboard"
-                className="group inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-base font-bold transition-all shadow-2xl shadow-blue-900/40 hover:shadow-blue-700/40 hover:-translate-y-0.5"
-              >
-                Try Free — No Credit Card Required
-                <svg className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                </svg>
-              </Link>
+              {user ? (
+                <Link
+                  href="/dashboard"
+                  className="group inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-base font-bold transition-all shadow-2xl shadow-blue-900/40 hover:shadow-blue-700/40 hover:-translate-y-0.5"
+                >
+                  Open Dashboard
+                  <svg className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  </svg>
+                </Link>
+              ) : (
+                <button
+                  onClick={handleSignIn}
+                  className="group inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-base font-bold transition-all shadow-2xl shadow-blue-900/40 hover:shadow-blue-700/40 hover:-translate-y-0.5"
+                >
+                  Try Free — Sign in with Google
+                  <svg className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  </svg>
+                </button>
+              )}
               <span className="text-xs text-slate-600">No signup required · Instant results</span>
             </div>
 
@@ -200,12 +242,21 @@ export default function LandingPage() {
                 ))}
               </ul>
 
-              <Link
-                href="/dashboard"
-                className="w-full text-center px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm transition-colors shadow-lg shadow-blue-900/30"
-              >
-                Get Started
-              </Link>
+              {user ? (
+                <Link
+                  href="/dashboard"
+                  className="w-full text-center px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm transition-colors shadow-lg shadow-blue-900/30"
+                >
+                  Open Dashboard
+                </Link>
+              ) : (
+                <button
+                  onClick={handleSignIn}
+                  className="w-full text-center px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm transition-colors shadow-lg shadow-blue-900/30"
+                >
+                  Get Started — Sign in with Google
+                </button>
+              )}
             </div>
 
             {/* Pro tier */}

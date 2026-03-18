@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState, useEffect, useRef, FormEvent } from "react";
+import { createClient } from "@/lib/supabase/client";
+import type { User } from "@supabase/supabase-js";
 
 interface NavbarProps {
   onSearch?: (ticker: string) => void;
@@ -14,6 +16,37 @@ const todayLabel = new Date().toLocaleDateString("en-US", {
 
 export default function Navbar({ onSearch }: NavbarProps) {
   const [input, setInput] = useState("");
+  const [user, setUser] = useState<User | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => setUser(data.user));
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => listener.subscription.unsubscribe();
+  }, []);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  async function handleSignOut() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    window.location.href = "/";
+  }
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -32,18 +65,37 @@ export default function Navbar({ onSearch }: NavbarProps) {
         {onSearch && (
           <SearchForm input={input} setInput={setInput} onSubmit={handleSubmit} wide />
         )}
-        <LiveIndicator />
+        <div className="flex items-center gap-4">
+          <LiveIndicator />
+          {user && (
+            <UserMenu
+              user={user}
+              menuOpen={menuOpen}
+              setMenuOpen={setMenuOpen}
+              onSignOut={handleSignOut}
+              menuRef={menuRef}
+            />
+          )}
+        </div>
       </div>
 
-      {/* ── Mobile: three stacked rows ── */}
+      {/* ── Mobile: stacked rows ── */}
       <div className="flex flex-col gap-2.5 px-4 py-3 sm:hidden">
-        {/* Row 1: brand */}
-        <Brand />
-        {/* Row 2: search + button */}
+        <div className="flex items-center justify-between">
+          <Brand />
+          {user && (
+            <UserMenu
+              user={user}
+              menuOpen={menuOpen}
+              setMenuOpen={setMenuOpen}
+              onSignOut={handleSignOut}
+              menuRef={menuRef}
+            />
+          )}
+        </div>
         {onSearch && (
           <SearchForm input={input} setInput={setInput} onSubmit={handleSubmit} wide={false} />
         )}
-        {/* Row 3: live indicator */}
         <LiveIndicator />
       </div>
     </header>
@@ -146,6 +198,97 @@ function LiveIndicator() {
       </div>
       <div className="h-4 w-px bg-[#1e2d52]" />
       <span className="text-xs text-slate-500">{todayLabel}</span>
+    </div>
+  );
+}
+
+function UserMenu({
+  user,
+  menuOpen,
+  setMenuOpen,
+  onSignOut,
+  menuRef,
+}: {
+  user: User;
+  menuOpen: boolean;
+  setMenuOpen: (v: boolean) => void;
+  onSignOut: () => void;
+  menuRef: React.RefObject<HTMLDivElement | null>;
+}) {
+  const avatarUrl = user.user_metadata?.avatar_url as string | undefined;
+  const fullName =
+    (user.user_metadata?.full_name as string | undefined) ?? user.email ?? "User";
+  const initials = fullName
+    .split(" ")
+    .map((n) => n[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+
+  return (
+    <div className="relative" ref={menuRef}>
+      <button
+        onClick={() => setMenuOpen(!menuOpen)}
+        className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-[#1a2644] transition-colors"
+        aria-label="User menu"
+      >
+        {/* Avatar */}
+        <div className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shrink-0">
+          {avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={avatarUrl} alt={fullName} className="w-full h-full object-cover" />
+          ) : (
+            <span className="text-xs font-bold text-white">{initials}</span>
+          )}
+        </div>
+        {/* First name — hidden on small screens */}
+        <span className="hidden md:block text-sm font-medium text-slate-200 max-w-[120px] truncate">
+          {fullName.split(" ")[0]}
+        </span>
+        {/* Chevron */}
+        <svg
+          className={`w-3.5 h-3.5 text-slate-500 transition-transform ${menuOpen ? "rotate-180" : ""}`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {/* Dropdown */}
+      {menuOpen && (
+        <div className="absolute right-0 mt-2 w-56 rounded-xl border border-[#1e2d52] bg-[#0d1428] shadow-2xl shadow-black/50 overflow-hidden z-50">
+          {/* User info */}
+          <div className="px-4 py-3 border-b border-[#1e2d52]">
+            <p className="text-sm font-semibold text-white truncate">{fullName}</p>
+            <p className="text-xs text-slate-500 truncate mt-0.5">{user.email}</p>
+          </div>
+
+          {/* Actions */}
+          <div className="p-1.5">
+            <button
+              onClick={onSignOut}
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-[#1a2644] transition-colors"
+            >
+              <svg
+                className="w-4 h-4 shrink-0"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                />
+              </svg>
+              Sign out
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
